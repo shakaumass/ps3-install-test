@@ -185,24 +185,10 @@ elif ! $CXX17_OK; then
         echo ""
         if [ -d /Library/Developer/CommandLineTools ]; then
             echo "Xcode Command Line Tools are installed but outdated."
-            echo "You need to remove the old version and reinstall."
             echo ""
-            echo "  sudo rm -rf /Library/Developer/CommandLineTools"
-            echo "  xcode-select --install"
+            echo "Update via: System Settings > General > Software Update"
             echo ""
-            echo "NOTE: The removal step requires sudo (admin password)."
-            echo "After the installation finishes, re-run this script."
-            echo ""
-            read -rp "Do this now? (requires sudo) [Y/n]: " CXX_FIX
-            CXX_FIX="${CXX_FIX:-Y}"
-            if [[ "$CXX_FIX" =~ ^[Yy] ]]; then
-                echo "Removing old Command Line Tools (requires admin password)..."
-                sudo rm -rf /Library/Developer/CommandLineTools
-                xcode-select --install 2>&1 || true
-                echo ""
-                echo "Xcode Command Line Tools installer launched."
-                echo "Please wait for it to finish, then re-run this script."
-            fi
+            echo "After the update finishes, re-run this script."
         else
             echo "Xcode Command Line Tools are not installed."
             echo ""
