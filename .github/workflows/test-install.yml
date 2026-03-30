@@ -1,0 +1,35 @@
+name: Test install_all_for_ps3.sh
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run install script
+        run: |
+          printf '\n\nY\n' | bash install_all_for_ps3.sh
+      - name: Verify installation
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          export LD_LIBRARY_PATH="$HOME/.local/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          phaverlite -v256001 "$HOME/.local/share/osc_demo.pha"
+
+  test-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Homebrew dependencies
+        run: brew install gmp mpfr
+      - name: Run install script
+        run: |
+          printf '\n\nY\n' | bash install_all_for_ps3.sh
+      - name: Verify installation
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          export DYLD_LIBRARY_PATH="$HOME/.local/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+          phaverlite -v256001 "$HOME/.local/share/osc_demo.pha"
