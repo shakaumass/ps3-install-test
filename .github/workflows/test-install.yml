@@ -12,7 +12,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run install script
         run: |
-          # Inputs: Y (install prereqs) -> empty (default path) -> Y (confirm)
           printf 'Y\n\nY\n' | bash install_all_for_ps3.sh
       - name: Verify installation
         run: |
@@ -28,10 +27,87 @@ jobs:
         run: brew install gmp mpfr plotutils
       - name: Run install script
         run: |
-          # Prereqs already installed, so inputs: empty (default path) -> Y (confirm)
           printf '\nY\n' | bash install_all_for_ps3.sh
       - name: Verify installation
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           export DYLD_LIBRARY_PATH="$HOME/.local/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
           phaverlite -v256001 "$HOME/.local/share/osc_demo.pha"
+
+  test-cxx17-detection-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create fake compiler rejecting C++17
+        run: |
+          mkdir -p /tmp/fake_bin
+          cat > /tmp/fake_bin/g++ << 'FAKE'
+          #!/bin/bash
+          for arg in "$@"; do
+            if [ "$arg" = "-std=c++17" ]; then
+              echo "error: C++17 not supported" >&2
+              exit 1
+            fi
+          done
+          exec /usr/bin/g++ "$@"
+          FAKE
+          chmod +x /tmp/fake_bin/g++
+      - name: Test C++17 warning is shown
+        run: |
+          OUTPUT=$(printf 'n\n' | env PATH="/tmp/fake_bin:$PATH" bash install_all_for_ps3.sh 2>&1 || true)
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "does not support C++17" && echo "PASS" || { echo "FAIL"; exit 1; }
+
+  test-cxx17-detection-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Homebrew dependencies
+        run: brew install gmp mpfr plotutils
+      - name: Create fake compiler rejecting C++17
+        run: |
+          mkdir -p /tmp/fake_bin
+          cat > /tmp/fake_bin/clang++ << 'FAKE'
+          #!/bin/bash
+          for arg in "$@"; do
+            if [ "$arg" = "-std=c++17" ]; then
+              echo "error: C++17 not supported" >&2
+              exit 1
+            fi
+          done
+          exec /usr/bin/clang++ "$@"
+          FAKE
+          chmod +x /tmp/fake_bin/clang++
+          # Also block g++ so it falls through to our fake clang++
+          cat > /tmp/fake_bin/g++ << 'FAKE2'
+          #!/bin/bash
+          exit 127
+          FAKE2
+          chmod +x /tmp/fake_bin/g++
+      - name: Test C++17 warning is shown
+        run: |
+          OUTPUT=$(printf 'n\n' | env PATH="/tmp/fake_bin:/usr/bin:/bin" bash install_all_for_ps3.sh 2>&1 || true)
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "does not support C++17" && echo "PASS" || { echo "FAIL"; exit 1; }
+
+  test-missing-prereqs-ubuntu:
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test prerequisite detection on bare system
+        run: |
+          OUTPUT=$(printf 'n\n' | bash install_all_for_ps3.sh 2>&1 || true)
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "Missing prerequisites" && echo "PASS" || { echo "FAIL"; exit 1; }
+
+  test-missing-prereqs-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test with no compiler on PATH
+        run: |
+          # Restrict PATH to only system essentials (no compilers, no brew)
+          OUTPUT=$(printf 'n\n' | env PATH="/usr/bin:/bin" bash install_all_for_ps3.sh 2>&1 || true)
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "Missing prerequisites" && echo "PASS" || { echo "FAIL"; exit 1; }
