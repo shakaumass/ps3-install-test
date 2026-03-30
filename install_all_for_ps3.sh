@@ -182,18 +182,43 @@ elif ! $CXX17_OK; then
     echo ""
     echo "WARNING: Found $cxx but it does not support C++17."
     if [ "$PLATFORM" = "macos" ]; then
-        echo "  Try installing/updating Xcode Command Line Tools:"
-        echo "    xcode-select --install"
-        echo "  Or install a newer compiler via Homebrew:"
-        echo "    brew install gcc"
-    else
-        echo "  Install a newer compiler:"
-        echo "    sudo apt-get install g++-10  (or newer)"
-    fi
-    echo ""
-    read -rp "Continue anyway? [y/N]: " CXX_CONTINUE
-    if [[ ! "$CXX_CONTINUE" =~ ^[Yy] ]]; then
+        echo ""
+        echo "Install or update Xcode Command Line Tools:"
+        echo "  xcode-select --install"
+        echo ""
+        echo "After the installation finishes, re-run this script."
+        echo ""
+        read -rp "Run 'xcode-select --install' now? [Y/n]: " CXX_FIX
+        CXX_FIX="${CXX_FIX:-Y}"
+        if [[ "$CXX_FIX" =~ ^[Yy] ]]; then
+            xcode-select --install 2>&1 || true
+            echo ""
+            echo "Xcode Command Line Tools installer launched."
+            echo "Please wait for it to finish, then re-run this script."
+        fi
         exit 1
+    else
+        echo ""
+        if [ "$(id -u)" -eq 0 ]; then
+            echo "  apt-get install g++-12"
+        else
+            echo "  sudo apt-get install g++-12"
+        fi
+        echo ""
+        read -rp "Install g++-12 now? [Y/n]: " CXX_FIX
+        CXX_FIX="${CXX_FIX:-Y}"
+        if [[ "$CXX_FIX" =~ ^[Yy] ]]; then
+            if [ "$(id -u)" -eq 0 ]; then
+                apt-get update && apt-get install -y g++-12
+            else
+                sudo apt-get update && sudo apt-get install -y g++-12
+            fi
+            export CXX="g++-12"
+            echo "Using g++-12."
+        else
+            echo "Please install a C++17 compiler and re-run this script."
+            exit 1
+        fi
     fi
 fi
 
