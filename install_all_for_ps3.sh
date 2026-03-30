@@ -183,24 +183,41 @@ elif ! $CXX17_OK; then
     echo "WARNING: Found $cxx but it does not support C++17."
     if [ "$PLATFORM" = "macos" ]; then
         echo ""
-        echo "You need to update Xcode Command Line Tools."
-        echo "This requires removing the old version first, then reinstalling."
-        echo ""
-        echo "  sudo rm -rf /Library/Developer/CommandLineTools"
-        echo "  xcode-select --install"
-        echo ""
-        echo "NOTE: The removal step requires sudo (admin password)."
-        echo "After the installation finishes, re-run this script."
-        echo ""
-        read -rp "Do this now? (requires sudo) [Y/n]: " CXX_FIX
-        CXX_FIX="${CXX_FIX:-Y}"
-        if [[ "$CXX_FIX" =~ ^[Yy] ]]; then
-            echo "Removing old Command Line Tools (requires admin password)..."
-            sudo rm -rf /Library/Developer/CommandLineTools
-            xcode-select --install 2>&1 || true
+        if [ -d /Library/Developer/CommandLineTools ]; then
+            echo "Xcode Command Line Tools are installed but outdated."
+            echo "You need to remove the old version and reinstall."
             echo ""
-            echo "Xcode Command Line Tools installer launched."
-            echo "Please wait for it to finish, then re-run this script."
+            echo "  sudo rm -rf /Library/Developer/CommandLineTools"
+            echo "  xcode-select --install"
+            echo ""
+            echo "NOTE: The removal step requires sudo (admin password)."
+            echo "After the installation finishes, re-run this script."
+            echo ""
+            read -rp "Do this now? (requires sudo) [Y/n]: " CXX_FIX
+            CXX_FIX="${CXX_FIX:-Y}"
+            if [[ "$CXX_FIX" =~ ^[Yy] ]]; then
+                echo "Removing old Command Line Tools (requires admin password)..."
+                sudo rm -rf /Library/Developer/CommandLineTools
+                xcode-select --install 2>&1 || true
+                echo ""
+                echo "Xcode Command Line Tools installer launched."
+                echo "Please wait for it to finish, then re-run this script."
+            fi
+        else
+            echo "Xcode Command Line Tools are not installed."
+            echo ""
+            echo "  xcode-select --install"
+            echo ""
+            echo "After the installation finishes, re-run this script."
+            echo ""
+            read -rp "Run 'xcode-select --install' now? [Y/n]: " CXX_FIX
+            CXX_FIX="${CXX_FIX:-Y}"
+            if [[ "$CXX_FIX" =~ ^[Yy] ]]; then
+                xcode-select --install 2>&1 || true
+                echo ""
+                echo "Xcode Command Line Tools installer launched."
+                echo "Please wait for it to finish, then re-run this script."
+            fi
         fi
         exit 1
     else
